@@ -321,7 +321,8 @@ command starts, by installing a pre-command hook."
     (setq pulsing-cursor-blinks-done 1)
     (pulsing-cursor--start-timer)
     (add-hook 'pre-command-hook 'pulsing-cursor-end)
-    (internal-show-cursor nil nil)))
+    (internal-show-cursor nil nil)
+    ))
 
 (defun pulsing-cursor-timer-function ()
   "Timer function of timer `pulsing-cursor-timer'."

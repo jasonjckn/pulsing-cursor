@@ -22,7 +22,22 @@
 
 (require 'pulse)
 
+
 ;;;; User Configuration
+
+(defgroup pulsing-cursor nil
+  "Displaying text cursors."
+  :version "21.1"
+  :group 'frames)
+
+(defvar pulsing-cursor-idle-timer nil
+  "Timer started after `pulsing-cursor-delay' seconds of Emacs idle time.
+The function `pulsing-cursor-start' is called when the timer fires.")
+
+(defvar pulsing-cursor-timer nil
+  "Timer started from `pulsing-cursor-start'.
+This timer calls `pulsing-cursor-timer-function' every
+`pulsing-cursor-interval' seconds.")
 
 (defcustom pulsing-cursor-delay 0.5
   "Seconds of idle time before the first blink of the cursor.
@@ -50,6 +65,8 @@ Use 0 or negative value to blink forever."
 
 (defvar pulsing-cursor-blinks-done 1
   "Number of blinks done since we started blinking on NS, X, and MS-Windows.")
+
+
 
 ;;; Code:
 
@@ -100,7 +117,7 @@ command starts, by installing a pre-command hook."
   ;; Suspend counting blinks when the w32 menu-bar menu is displayed,
   ;; since otherwise menu tooltips will behave erratically.
   (or (and (fboundp 'w32--menu-bar-in-use)
-	   (w32--menu-bar-in-use))
+           (w32--menu-bar-in-use))
       (setq pulsing-cursor-blinks-done (1+ pulsing-cursor-blinks-done)))
   ;; Each blink is two calls to this function.
   (when (and (> pulsing-cursor-blinks 0)
@@ -195,8 +212,7 @@ command starts, by installing a pre-command hook."
     (setq pulsing-cursor-blinks-done 1)
     (pulsing-cursor--start-timer)
     (add-hook 'pre-command-hook 'pulsing-cursor-end)
-    (internal-show-cursor nil nil)
-    ))
+    (internal-show-cursor nil nil)))
 
 (defun pulsing-cursor-timer-function ()
   "Timer function of timer `pulsing-cursor-timer'."
@@ -209,7 +225,7 @@ command starts, by installing a pre-command hook."
   ;; Suspend counting blinks when the w32 menu-bar menu is displayed,
   ;; since otherwise menu tooltips will behave erratically.
   (or (and (fboundp 'w32--menu-bar-in-use)
-	   (w32--menu-bar-in-use))
+           (w32--menu-bar-in-use))
       (setq pulsing-cursor-blinks-done (1+ pulsing-cursor-blinks-done)))
   ;; Each blink is two calls to this function.
   (when (and (> pulsing-cursor-blinks 0)
@@ -274,22 +290,7 @@ stopped by `pulsing-cursor-suspend'.  Internally calls
      :background "#FF1D8F")
     (((class color) (background dark))
      :background "#FF1D8F"))
-  "")
-
-(defvar pulsing-cursor-idle-timer nil
-  "Timer started after `pulsing-cursor-delay' seconds of Emacs idle time.
-The function `pulsing-cursor-start' is called when the timer fires.")
-
-(defvar pulsing-cursor-timer nil
-  "Timer started from `pulsing-cursor-start'.
-This timer calls `pulsing-cursor-timer-function' every
-`pulsing-cursor-interval' seconds.")
-
-(defgroup pulsing-cursor nil
-  "Displaying text cursors."
-  :version "21.1"
-  :group 'frames)
-
+  "Overlay face.")
 
 (defun pulsing-cursor--start-idle-timer ()
   "Start the `pulsing-cursor-idle-timer'."
@@ -320,8 +321,7 @@ command starts, by installing a pre-command hook."
     (setq pulsing-cursor-blinks-done 1)
     (pulsing-cursor--start-timer)
     (add-hook 'pre-command-hook 'pulsing-cursor-end)
-    (internal-show-cursor nil nil)
-    ))
+    (internal-show-cursor nil nil)))
 
 (defun pulsing-cursor-timer-function ()
   "Timer function of timer `pulsing-cursor-timer'."
@@ -334,7 +334,7 @@ command starts, by installing a pre-command hook."
   ;; Suspend counting blinks when the w32 menu-bar menu is displayed,
   ;; since otherwise menu tooltips will behave erratically.
   (or (and (fboundp 'w32--menu-bar-in-use)
-	   (w32--menu-bar-in-use))
+           (w32--menu-bar-in-use))
       (setq pulsing-cursor-blinks-done (1+ pulsing-cursor-blinks-done)))
   ;; Each blink is two calls to this function.
   (when (and (> pulsing-cursor-blinks 0)
@@ -406,9 +406,9 @@ See also `pulsing-cursor-interval' and `pulsing-cursor-delay'.
 This command is effective only on graphical frames.  On text-only
 terminals, cursor blinking is controlled by the terminal."
   :init-value (not (or noninteractive
-		       no-blinking-cursor
-		       (eq system-type 'ms-dos)
-		       (not (display-blink-cursor-p))))
+                       no-blinking-cursor
+                       (eq system-type 'ms-dos)
+                       (not (display-blink-cursor-p))))
   ;;:initialize 'custom-initialize-delay
   :group 'pulsing-cursor
   :global t
@@ -416,6 +416,7 @@ terminals, cursor blinking is controlled by the terminal."
   (remove-hook 'after-delete-frame-functions #'pulsing-cursor--rescan-frames)
   (remove-function after-focus-change-function #'pulsing-cursor--rescan-frames)
   (when pulsing-cursor-mode
+    (blink-cursor-mode -1)
     (add-function :after after-focus-change-function #'pulsing-cursor--rescan-frames)
     (add-hook 'after-delete-frame-functions #'pulsing-cursor--rescan-frames)
     (pulsing-cursor--start-idle-timer)))
@@ -429,3 +430,5 @@ terminals, cursor blinking is controlled by the terminal."
   (setq pulsing-cursor-blinks 20))
 
 (provide 'pulsing-cursor)
+
+;;; pulsing-cursor.el ends here

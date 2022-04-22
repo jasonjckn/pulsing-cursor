@@ -6,7 +6,7 @@
 ;; Created: 22 Apr 2022
 ;; Homepage: https://github.com/jasonjckn/pulsing-cursor
 ;; Keywords: extensions
-;; Package-Requires: ((emacs "25.1"))
+;; Package-Requires: ((emacs "27.1"))
 ;; SPDX-License-Identifier: UNLICENSE
 ;; Version: 1.0
 
@@ -66,6 +66,13 @@ Use 0 or negative value to blink forever."
 (defvar pulsing-cursor-blinks-done 1
   "Number of blinks done since we started blinking on NS, X, and MS-Windows.")
 
+
+(defface pulsing-cursor-overlay-face1
+  '((((class color) (background light))
+     :background "#FF1D8F")
+    (((class color) (background dark))
+     :background "#FF1D8F"))
+  "Overlay face.")
 
 
 ;;; Code:
@@ -233,64 +240,6 @@ command starts, by installing a pre-command hook."
     (pulsing-cursor-suspend)
     (add-hook 'post-command-hook 'pulsing-cursor-check)))
 
-(defun pulsing-cursor-end ()
-  "Stop cursor blinking.
-This is installed as a pre-command hook by `pulsing-cursor-start'.
-When run, it cancels the timer `pulsing-cursor-timer' and removes
-itself as a pre-command hook."
-  (remove-hook 'pre-command-hook 'pulsing-cursor-end)
-
-  (internal-show-cursor nil t)
-
-  (when pulsing-cursor-timer
-    (cancel-timer pulsing-cursor-timer)
-    (setq pulsing-cursor-timer nil)))
-
-(defun pulsing-cursor-suspend ()
-  "Suspend cursor blinking.
-This is called when no frame has focus and timers can be suspended.
-Timers are restarted by `pulsing-cursor-check', which is called when a
-frame receives focus."
-  (pulsing-cursor-end)
-  (when pulsing-cursor-idle-timer
-    (cancel-timer pulsing-cursor-idle-timer)
-    (setq pulsing-cursor-idle-timer nil)))
-
-(defun pulsing-cursor--should-blink ()
-  "Determine whether we should be blinking.
-Returns whether we have any focused non-TTY frame."
-  (and pulsing-cursor-mode
-       (let ((frame-list (frame-list))
-             (any-graphical-focused nil))
-         (while frame-list
-           (let ((frame (pop frame-list)))
-             (when (and (display-graphic-p frame) (frame-focus-state frame))
-               (setf any-graphical-focused t)
-               (setf frame-list nil))))
-         any-graphical-focused)))
-
-(defun pulsing-cursor-check ()
-  "Check if cursor blinking shall be restarted.
-This is done when a frame gets focus.  Blink timers may be
-stopped by `pulsing-cursor-suspend'.  Internally calls
-`pulsing-cursor--should-blink' and returns its result."
-  (let ((should-blink (pulsing-cursor--should-blink)))
-    (when (and should-blink (not pulsing-cursor-idle-timer))
-      (remove-hook 'post-command-hook 'pulsing-cursor-check)
-      (pulsing-cursor--start-idle-timer))
-    should-blink))
-
-(defun pulsing-cursor--rescan-frames (&optional _ign)
-  "Called when the set of focused frames changes or when we delete a frame."
-  (unless (pulsing-cursor-check)
-    (pulsing-cursor-suspend)))
-
-(defface pulsing-cursor-overlay-face1
-  '((((class color) (background light))
-     :background "#FF1D8F")
-    (((class color) (background dark))
-     :background "#FF1D8F"))
-  "Overlay face.")
 
 (defun pulsing-cursor--start-idle-timer ()
   "Start the `pulsing-cursor-idle-timer'."
@@ -321,8 +270,7 @@ command starts, by installing a pre-command hook."
     (setq pulsing-cursor-blinks-done 1)
     (pulsing-cursor--start-timer)
     (add-hook 'pre-command-hook 'pulsing-cursor-end)
-    (internal-show-cursor nil nil)
-    ))
+    (internal-show-cursor nil nil)))
 
 (defun pulsing-cursor-timer-function ()
   "Timer function of timer `pulsing-cursor-timer'."
@@ -422,6 +370,8 @@ terminals, cursor blinking is controlled by the terminal."
     (add-hook 'after-delete-frame-functions #'pulsing-cursor--rescan-frames)
     (pulsing-cursor--start-idle-timer)))
 
+
+(pulsing-cursor-mode +1)
 
 (when nil
   (pulsing-cursor-mode +1)

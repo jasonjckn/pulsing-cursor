@@ -371,7 +371,7 @@ terminals, cursor blinking is controlled by the terminal."
     (pulsing-cursor--start-idle-timer)))
 
 
-;; (pulsing-cursor-mode +1)
+(pulsing-cursor-mode +1)
 
 (when nil
   (pulsing-cursor-mode +1)

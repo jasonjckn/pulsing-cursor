@@ -94,7 +94,7 @@ Use 0 or negative value to blink forever."
   "Start the `pulsing-cursor-timer'."
   (when pulsing-cursor-timer (cancel-timer pulsing-cursor-timer))
   (setq pulsing-cursor-timer
-        (run-with-timer pulsing-cursor-interval pulsing-cursor-interval
+        (run-with-timer 0 pulsing-cursor-interval
                         #'pulsing-cursor-timer-function)))
 
 ;;;###autoload
@@ -109,7 +109,6 @@ command starts, by installing a pre-command hook."
     (setq pulsing-cursor-blinks-done 1)
     (pulsing-cursor--start-timer)
     (add-hook 'pre-command-hook 'pulsing-cursor-end)
-    (internal-show-cursor nil nil)
     ))
 
 ;;;###autoload

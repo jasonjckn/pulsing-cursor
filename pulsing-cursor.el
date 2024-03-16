@@ -12,16 +12,12 @@
 
 ;;; Commentary:
 
-
 ;; Please see https://github.com/jasonjckn/pulsing-cursor for more
 ;; information.
-
-
 
 ;;;; Libraries
 
 (require 'pulse)
-
 
 ;;;; User Configuration
 
@@ -66,6 +62,11 @@ Use 0 or negative value to blink forever."
 (defvar pulsing-cursor-blinks-done 1
   "Number of blinks done since we started blinking on NS, X, and MS-Windows.")
 
+(defcustom pulsing-cursor-change-shape t
+  "Control whether the cursor shape changes when `pulsing-cursor-mode` is active.
+Set this to nil to prevent the cursor shape from changing."
+  :type 'boolean
+  :group 'pulsing-cursor)
 
 (defface pulsing-cursor-overlay-face1
   '((((class color) (background light))
@@ -74,7 +75,6 @@ Use 0 or negative value to blink forever."
      :background "#FF1D8F"))
   "Overlay face.")
 
-
 ;;; Code:
 
 ;;;###autoload
@@ -82,10 +82,6 @@ Use 0 or negative value to blink forever."
   "Start the `pulsing-cursor-idle-timer'."
   (when pulsing-cursor-idle-timer (cancel-timer pulsing-cursor-idle-timer))
   (setq pulsing-cursor-idle-timer
-        ;; The 0.2 sec limitation from below is to avoid erratic
-        ;; behavior (or downright failure to display the cursor
-        ;; during command execution) if they set pulsing-cursor-delay
-        ;; to a very small or even zero value.
         (run-with-idle-timer (max 0.2 pulsing-cursor-delay)
                              :repeat #'pulsing-cursor-start)))
 
@@ -104,28 +100,19 @@ This starts the timer `pulsing-cursor-timer', which makes the cursor blink
 if appropriate.  It also arranges to cancel that timer when the next
 command starts, by installing a pre-command hook."
   (when (null pulsing-cursor-timer)
-    ;; Set up the timer first, so that if this signals an error,
-    ;; pulsing-cursor-end is not added to pre-command-hook.
     (setq pulsing-cursor-blinks-done 1)
     (pulsing-cursor--start-timer)
-    (add-hook 'pre-command-hook 'pulsing-cursor-end)
-    ))
+    (add-hook 'pre-command-hook 'pulsing-cursor-end)))
 
 ;;;###autoload
 (defun pulsing-cursor-timer-function ()
   "Timer function of timer `pulsing-cursor-timer'."
-
-  (internal-show-cursor nil (not (internal-show-cursor-p)))
-
+  (when pulsing-cursor-change-shape
+    (internal-show-cursor nil (not (internal-show-cursor-p))))
   (pulse-momentary-highlight-region (point) (+ 1 (point)) 'pulsing-cursor-overlay-face1)
-  ;;(pulse-momentary-highlight-region (point-min) (point-max))
-
-  ;; Suspend counting blinks when the w32 menu-bar menu is displayed,
-  ;; since otherwise menu tooltips will behave erratically.
   (or (and (fboundp 'w32--menu-bar-in-use)
            (w32--menu-bar-in-use))
       (setq pulsing-cursor-blinks-done (1+ pulsing-cursor-blinks-done)))
-  ;; Each blink is two calls to this function.
   (when (and (> pulsing-cursor-blinks 0)
              (<= (* 2 pulsing-cursor-blinks) pulsing-cursor-blinks-done))
     (pulsing-cursor-suspend)
@@ -133,24 +120,16 @@ command starts, by installing a pre-command hook."
 
 ;;;###autoload
 (defun pulsing-cursor-end ()
-  "Stop cursor blinking.
-This is installed as a pre-command hook by `pulsing-cursor-start'.
-When run, it cancels the timer `pulsing-cursor-timer' and removes
-itself as a pre-command hook."
+  "Stop cursor blinking."
   (remove-hook 'pre-command-hook 'pulsing-cursor-end)
-
   (internal-show-cursor nil t)
-
   (when pulsing-cursor-timer
     (cancel-timer pulsing-cursor-timer)
     (setq pulsing-cursor-timer nil)))
 
 ;;;###autoload
 (defun pulsing-cursor-suspend ()
-  "Suspend cursor blinking.
-This is called when no frame has focus and timers can be suspended.
-Timers are restarted by `pulsing-cursor-check', which is called when a
-frame receives focus."
+  "Suspend cursor blinking."
   (pulsing-cursor-end)
   (when pulsing-cursor-idle-timer
     (cancel-timer pulsing-cursor-idle-timer)
@@ -158,8 +137,7 @@ frame receives focus."
 
 ;;;###autoload
 (defun pulsing-cursor--should-blink ()
-  "Determine whether we should be blinking.
-Returns whether we have any focused non-TTY frame."
+  "Determine whether we should be blinking."
   (and pulsing-cursor-mode
        (let ((frame-list (frame-list))
              (any-graphical-focused nil))
@@ -172,10 +150,7 @@ Returns whether we have any focused non-TTY frame."
 
 ;;;###autoload
 (defun pulsing-cursor-check ()
-  "Check if cursor blinking shall be restarted.
-This is done when a frame gets focus.  Blink timers may be
-stopped by `pulsing-cursor-suspend'.  Internally calls
-`pulsing-cursor--should-blink' and returns its result."
+  "Check if cursor blinking shall be restarted."
   (let ((should-blink (pulsing-cursor--should-blink)))
     (when (and should-blink (not pulsing-cursor-idle-timer))
       (remove-hook 'post-command-hook 'pulsing-cursor-check)
@@ -188,25 +163,12 @@ stopped by `pulsing-cursor-suspend'.  Internally calls
   (unless (pulsing-cursor-check)
     (pulsing-cursor-suspend)))
 
-;;; -------------------------------------------------------------------------------
-
-
 (define-minor-mode pulsing-cursor-mode
-  "Toggle cursor blinking (Blink Cursor mode).
-
-If the value of `pulsing-cursor-blinks' is positive (10 by default),
-the cursor stops blinking after that number of blinks, if Emacs
-gets no input during that time.
-
-See also `pulsing-cursor-interval' and `pulsing-cursor-delay'.
-
-This command is effective only on graphical frames.  On text-only
-terminals, cursor blinking is controlled by the terminal."
+  "Toggle cursor blinking (Blink Cursor mode)."
   :init-value (not (or noninteractive
                        no-blinking-cursor
                        (eq system-type 'ms-dos)
                        (not (display-blink-cursor-p))))
-  ;;:initialize 'custom-initialize-delay
   :group 'pulsing-cursor
   :global t
   (pulsing-cursor-suspend)
@@ -218,13 +180,11 @@ terminals, cursor blinking is controlled by the terminal."
     (add-hook 'after-delete-frame-functions #'pulsing-cursor--rescan-frames)
     (pulsing-cursor--start-idle-timer)))
 
-
 (pulsing-cursor-mode +1)
 
 (when nil
   (pulsing-cursor-mode +1)
   (setq blink-cursor-alist '((box . hollow)))
-  ;; (setq blink-cursor-alist '((box . nil)))
   (setq pulsing-cursor-interval 0.25)
   (setq pulsing-cursor-blinks 20))
 
